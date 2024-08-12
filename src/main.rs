@@ -6,7 +6,12 @@ async fn uppercase(s: String) -> String {
     s.to_uppercase()
 }
 
-async fn handler<'a, T: Deserialize<'a> + Serialize, Fut: Future<Output = T>, F: Fn(T) -> Fut>(data: &'a Vec<u8>, func: F) -> Vec<u8> {
+async fn handler<'a, T, U, Fut, F>(data: &'a Vec<u8>, func: F) -> Vec<u8> 
+where T: Deserialize<'a>,
+      U: Serialize,
+      Fut: Future<Output = U>,
+      F: Fn(T) -> Fut,
+{
     let deserialized = rmp_serde::from_slice::<T>(data).unwrap();
     rmp_serde::to_vec(&func(deserialized).await).unwrap()
 }
@@ -16,7 +21,6 @@ async fn server() {
 
     HttpServer::new(|| {
         App::new()
-            // enable logger
             .wrap(middleware::Logger::default())
             .service(web::resource("/uppercase").to(|_: HttpRequest, body: Bytes|
                 async move { 
